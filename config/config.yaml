@@ -1,0 +1,197 @@
+# Orange Pi 5 Plus 语音助手配置文件
+# 支持本地模型 + 国内主流云端API混合模式
+# 最后更新: 2026-02-23
+
+# ===========================================
+# 模型路径 (本地模型)
+# ===========================================
+models:
+  asr: models/asr/Qwen3-ASR-0.6B
+  llm: models/llm/DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm
+  tts: models/tts/Qwen3-TTS-0.6B
+
+# 运行设备 (cpu/cuda)
+# RK3588上CPU表示在CPU上运行，NPU通过RKLLM自动调用
+device: cpu
+
+# ===========================================
+# 云端API配置 (可选)
+# 支持国内主流AI服务商 - 2026年最新模型
+# ===========================================
+cloud_api:
+  # 是否启用云端API
+  enabled: false
+  
+  # 服务商选择 (必填)
+  # === 国内主流 (推荐) ===
+  # dashscope    - 阿里云灵积 - 通义千问 (Qwen3/3.5系列)
+  # qianfan      - 百度千帆 - 文心一言 (ERNIE 5.0/X1.1/4.5系列)
+  # hunyuan      - 腾讯混元 (2.0/T1/A13B系列)
+  # doubao       - 字节豆包 - 火山引擎 (1.8/Pro/Lite系列)
+  # zhipu        - 智谱AI - ChatGLM (GLM-4/4.5/4.6系列)
+  # moonshot     - 月之暗面 - Kimi (v1系列)
+  # minimax      - MiniMax (abab6.5系列)
+  # yi           - 零一万物 (Lightning/Large系列)
+  # spark        - 讯飞星火 (Lite/4.0Ultra)
+  # === 其他 ===
+  # deepseek     - DeepSeek (V3.2/R1系列)
+  # siliconflow  - 硅基流动 (100+开源模型)
+  # openai       - OpenAI (GPT系列)
+  # custom       - 自定义API
+  provider: dashscope
+  
+  # API密钥
+  # 可通过环境变量设置，支持的变量名：
+  #   DASHSCOPE_API_KEY, QIANFAN_API_KEY, HUNYUAN_API_KEY, 
+  #   DOUBAO_API_KEY, ZHIPU_API_KEY, MOONSHOT_API_KEY,
+  #   MINIMAX_API_KEY, YI_API_KEY, SPARK_API_KEY,
+  #   DEEPSEEK_API_KEY, SILICONFLOW_API_KEY, OPENAI_API_KEY
+  api_key: ""
+  
+  # 部分平台需要额外的密钥 (如百度千帆需要secret_key)
+  # secret_key: ""
+  
+  # 部分平台需要App ID (如科大讯飞)
+  # app_id: ""
+  
+  # 模型名称 (可选，不设置则使用默认值)
+  # ===== 2026年最新推荐模型 =====
+  # 
+  # dashscope (阿里云):
+  #   - qwen-max / qwen-max-latest      # 最强旗舰版
+  #   - qwen-plus / qwen-plus-latest    # 均衡推荐版
+  #   - qwen-turbo                      # 极速高性价比
+  #   - qwen-flash                      # 闪电超快版
+  #   - qwen-coder                      # 代码专用
+  #   - qwen-long                       # 100万token长文本
+  #   - qwen3.5-plus                    # Qwen3.5最新
+  #
+  # qianfan (百度千帆):
+  #   - ernie-5.0-thinking-preview      # ERNIE 5.0旗舰
+  #   - ernie-5.0-thinking-latest       # 5.0最新版
+  #   - ernie-x1.1                      # X1.1增强版
+  #   - ernie-4.5-turbo-128k            # 4.5长文本版
+  #   - deepseek-r1                     # 接入DeepSeek-R1
+  #
+  # hunyuan (腾讯混元):
+  #   - hunyuan-2.0-thinking            # 2.0思考版(旗舰)
+  #   - hunyuan-2.0-instruct            # 2.0指令版(推荐)
+  #   - hunyuan-t1-latest               # T1推理模型
+  #   - hunyuan-a13b                    # A13B MoE模型
+  #   - hunyuan-lite                    # 免费版
+  #
+  # doubao (字节豆包/火山引擎):
+  #   - doubao-pro-32k                  # Pro 32K(推荐)
+  #   - doubao-pro-4k                   # Pro 4K
+  #   - doubao-pro-256k                 # Pro 256K超长文本
+  #   - doubao-lite-4k/32k              # Lite轻量版
+  #   - doubao-1.8-4k/32k/256k          # 豆包1.8系列
+  #
+  # zhipu (智谱AI):
+  #   - glm-4-plus                      # Plus旗舰版
+  #   - glm-4                           # GLM-4标准版
+  #   - glm-4-air                       # Air均衡版(推荐)
+  #   - glm-4-airx                      # AirX极速版
+  #   - glm-4-flash                     # Flash免费版
+  #   - glm-4-9b-chat                   # 9B开源版
+  #
+  # moonshot (月之暗面/Kimi):
+  #   - moonshot-v1-8k                  # 8K上下文
+  #   - moonshot-v1-32k                 # 32K上下文(推荐)
+  #   - moonshot-v1-128k                # 128K长文本
+  #
+  # minimax:
+  #   - abab6.5s-chat                   # 6.5s极速(200K上下文)
+  #   - abab6.5-chat                    # 6.5标准版
+  #   - abab6.5t-chat                   # 6.5t万亿参数
+  #
+  # yi (零一万物):
+  #   - yi-lightning                    # Lightning极速版
+  #   - yi-large                        # Large旗舰版
+  #   - yi-medium                       # Medium标准版
+  #   - yi-spark                        # Spark轻量版
+  #
+  # spark (讯飞星火):
+  #   - lite                            # Lite免费版
+  #   - generalv3                       # 标准版v3
+  #   - generalv3.5                     # 增强版v3.5
+  #   - 4.0Ultra                        # 4.0Ultra旗舰版
+  #
+  # deepseek:
+  #   - deepseek-chat                   # V3.2通用对话(128K)
+  #   - deepseek-reasoner               # R1推理模型(思维链)
+  #
+  # siliconflow (硅基流动):
+  #   - deepseek-ai/DeepSeek-V3         # DeepSeek V3
+  #   - deepseek-ai/DeepSeek-V3.2       # DeepSeek V3.2
+  #   - deepseek-ai/DeepSeek-R1         # DeepSeek R1
+  #   - Qwen/Qwen2.5-7B-Instruct        # Qwen2.5 7B(免费)
+  #   - Qwen/Qwen2.5-72B-Instruct       # Qwen2.5 72B
+  #   - THUDM/glm-4-9b-chat             # GLM-4 9B(免费)
+  #   - zai-org/GLM-4.7                 # GLM-4.7
+  #
+  # openai:
+  #   - gpt-3.5-turbo                   # GPT-3.5
+  #   - gpt-4                           # GPT-4
+  #   - gpt-4-turbo                     # GPT-4 Turbo
+  #   - gpt-4o                          # GPT-4o
+  #
+  model: ""
+  
+  # 自定义API基础URL (仅用于custom provider)
+  # 例如: https://api.your-domain.com/v1
+  base_url: ""
+  
+  # 优先使用云端API (当网络可用时)
+  prefer_cloud: true
+  
+  # 自动回退到本地模型 (当云端API失败时)
+  auto_fallback: true
+  
+  # API参数
+  temperature: 0.7
+  max_tokens: 512
+
+# ===========================================
+# 音频配置
+# ===========================================
+audio:
+  sample_rate: 16000
+  chunk_duration: 2.0
+  vad_aggressiveness: 2
+  input_device: null
+  output_device: null
+
+# ===========================================
+# 本地LLM配置
+# ===========================================
+llm:
+  max_context_len: 2048
+  temperature: 0.7
+  max_new_tokens: 512
+  top_p: 0.9
+  repeat_penalty: 1.1
+
+# ===========================================
+# 对话配置
+# ===========================================
+max_history: 10
+
+system_prompt: |
+  你是一个 helpful 的中文语音助手，运行在 Orange Pi 5 Plus 上。
+  请用简洁友好的中文回答问题。
+
+# ===========================================
+# TTS配置
+# ===========================================
+tts:
+  default_speaker: 0
+  speed: 1.0
+  cache_dir: cache
+
+# ===========================================
+# 调试配置
+# ===========================================
+debug:
+  save_intermediate: false
+  debug_dir: debug
