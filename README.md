@@ -137,7 +137,7 @@ python3 src/main.py --local
 | **腾讯混元** | `hunyuan` | `hunyuan-2.0-thinking` | 混元2.0 MoE架构 |
 | **硅基流动** | `siliconflow` | `Qwen/Qwen3-235B-A22B` | 100+开源模型，免费额度 |
 | **字节豆包** | `doubao` | `doubao-pro-32k` | 火山方舟，256K上下文 |
-| **MiniMax** | `minimax` | `abab6.5s-chat` | 200K上下文，MoE架构 |
+| **MiniMax** | `minimax` | `MiniMax-M2.5` | SWE-Bench 80.2%，Agent能力强 |
 | **零一万物** | `yi` | `yi-lightning` | Lightning极速版 |
 | **讯飞星火** | `spark` | `4.0Ultra` | 4.0Ultra旗舰 |
 | **OpenAI** | `openai` | `gpt-5.2`, `gpt-4o` | GPT系列，生态完善 |
