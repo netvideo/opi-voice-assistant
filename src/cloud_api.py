@@ -59,23 +59,22 @@ class CloudLLMClient:
     
     # 供应商配置表 - 2025-2026年最新模型
     PROVIDER_CONFIGS = {
-        # 阿里云 - 通义千问 (Qwen3系列 - 2025年最新)
+        # 阿里云 - 通义千问 (Qwen3.5系列 - 2026年2月最新)
         CloudProvider.DASHSCOPE: {
             "name": "阿里云灵积",
             "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-            "default_model": "qwen-plus",
+            "default_model": "qwen3.5-plus",
             "models": [
-                "qwen-max",                    # 旗舰版 - 最强能力
+                "qwen3.5-plus",                # Qwen3.5 - 2026.02.16发布，原生多模态
+                "qwen3.5-max",                 # Qwen3.5 最强版
+                "qwen-max",                    # Max旗舰版
                 "qwen-max-latest",             # Max最新版
-                "qwen-plus",                   # 均衡版 - 推荐
+                "qwen-plus",                   # Plus均衡版
                 "qwen-plus-latest",            # Plus最新版  
                 "qwen-turbo",                  # 极速版 - 高性价比
-                "qwen-flash",                  # 闪电版 - 超快响应
-                "qwen-coder",                  # 代码专用
                 "qwen-long",                   # 长文本版 (100万token)
+                "qwen-coder",                  # 代码专用
                 "qwen-vl-max",                 # 视觉版
-                "qwen3-max",                   # Qwen3系列
-                "qwen3.5-plus"                 # Qwen3.5系列 - 最新
             ],
             "api_format": "openai",
             "stream_format": "openai"
@@ -144,52 +143,56 @@ class CloudLLMClient:
             "stream_format": "openai"
         },
         
-        # 智谱AI - ChatGLM (2025-2026年最新)
+        # 智谱AI - ChatGLM (2026年最新)
         CloudProvider.ZHIPU: {
             "name": "智谱AI",
             "base_url": "https://open.bigmodel.cn/api/paas/v4",
             "default_model": "glm-4-air",
             "models": [
-                "glm-4-plus",                  # Plus版 - 旗舰
-                "glm-4",                       # GLM-4标准版
-                "glm-4-air",                   # Air版 - 推荐均衡
-                "glm-4-airx",                  # AirX - 极速版
-                "glm-4-flash",                 # Flash版 - 免费
-                "glm-4v",                      # 视觉版
-                "glm-4v-plus",                 # 视觉Plus版
-                "glm-4-9b-chat",               # 9B开源版
-                "chatglm3-6b"                  # ChatGLM3
+                "glm-5",                       # GLM-5 - 开源之王
+                "glm-4.7",                      # GLM-4.7旗舰
+                "glm-4.7-flash",                # GLM-4.7极速版
+                "glm-4-plus",                   # Plus版 - 旗舰
+                "glm-4",                        # GLM-4标准版
+                "glm-4-air",                    # Air版 - 推荐均衡
+                "glm-4-airx",                   # AirX - 极速版
+                "glm-4-flash",                  # Flash版 - 免费
+                "glm-4v",                       # 视觉版
+                "glm-4v-plus",                  # 视觉Plus版
+                "glm-4-9b-chat"                 # 9B开源版
             ],
             "api_format": "zhipu",
             "stream_format": "zhipu"
         },
         
-        # 月之暗面 - Kimi (2025-2026年最新)
+        # 月之暗面 - Kimi (2026年最新)
         CloudProvider.MOONSHOT: {
             "name": "月之暗面",
             "base_url": "https://api.moonshot.cn/v1",
-            "default_model": "moonshot-v1-8k",
+            "default_model": "moonshot-v1-32k",
             "models": [
-                "moonshot-v1-8k",              # 8K上下文
-                "moonshot-v1-32k",             # 32K上下文 - 推荐
-                "moonshot-v1-128k",            # 128K上下文 - 长文本
-                "moonshot-v1-auto"             # 自动选择
+                "kimi-k2.5",                    # K2.5 - 最新版，推理能力强
+                "kimi-k2.5-thinking",           # K2.5思考版
+                "moonshot-v1-8k",               # 8K上下文
+                "moonshot-v1-32k",              # 32K上下文 - 推荐
+                "moonshot-v1-128k",             # 128K上下文 - 长文本
+                "moonshot-v1-auto"              # 自动选择
             ],
             "api_format": "openai",
             "stream_format": "openai"
         },
         
-        # MiniMax (2025-2026年最新)
+        # MiniMax (2026年最新)
         CloudProvider.MINIMAX: {
             "name": "MiniMax",
             "base_url": "https://api.minimax.chat/v1",
-            "default_model": "abab6.5s-chat",
+            "default_model": "MiniMax-M2.5",
             "models": [
-                "abab6.5s-chat",               # 6.5s - 极速 (200K上下文)
-                "abab6.5-chat",                # 6.5 - 标准版
-                "abab6.5t-chat",               # 6.5t - 万亿参数
-                "abab6-chat",                  # 6.0版
-                "abab5.5-chat"                 # 5.5经典版
+                "MiniMax-M2.5",                 # M2.5 - 最新旗舰，SWE-Bench 80.2%
+                "MiniMax-M2.5-Lightning",       # M2.5极速版，100 TPS
+                "abab6.5s-chat",                # 6.5s - 极速 (200K上下文)
+                "abab6.5-chat",                 # 6.5 - 标准版
+                "abab6.5t-chat",                # 6.5t - 万亿参数
             ],
             "api_format": "minimax",
             "stream_format": "minimax"
@@ -238,31 +241,25 @@ class CloudLLMClient:
             "stream_format": "openai"
         },
 
-        # 硅基流动 (2025-2026年最新 - 100+开源模型)
+        # 硅基流动 (2026年最新 - 100+开源模型)
         CloudProvider.SILICONFLOW: {
             "name": "硅基流动",
             "base_url": "https://api.siliconflow.cn/v1",
-            "default_model": "deepseek-ai/DeepSeek-V3",
+            "default_model": "Qwen/Qwen3-235B-A22B",
             "models": [
+                # Qwen3系列
+                "Qwen/Qwen3-235B-A22B",              # Qwen3 MoE旗舰
+                "Qwen/Qwen3-30B-A3B",                # Qwen3 MoE轻量
+                "Qwen/Qwen3-14B",                    # Qwen3 14B
                 # DeepSeek系列
-                "deepseek-ai/DeepSeek-V3",           # DeepSeek V3 - 推荐
                 "deepseek-ai/DeepSeek-V3.2",         # DeepSeek V3.2
                 "deepseek-ai/DeepSeek-R1",           # DeepSeek R1推理
-                "deepseek-ai/DeepSeek-V2.5",         # DeepSeek V2.5
-                # Qwen系列
-                "Qwen/Qwen2.5-7B-Instruct",          # Qwen2.5 7B - 免费
-                "Qwen/Qwen2.5-14B-Instruct",         # Qwen2.5 14B
-                "Qwen/Qwen2.5-32B-Instruct",         # Qwen2.5 32B
-                "Qwen/Qwen2.5-72B-Instruct",         # Qwen2.5 72B
-                "Qwen/Qwen2.5-Coder-7B-Instruct",    # Qwen2.5代码版
+                "deepseek-ai/DeepSeek-V3",           # DeepSeek V3
                 # GLM系列
                 "THUDM/glm-4-9b-chat",               # GLM-4 9B - 免费
-                "THUDM/GLM-4.5",                     # GLM-4.5
-                "zai-org/GLM-4.6",                   # GLM-4.6
                 "zai-org/GLM-4.7",                   # GLM-4.7
                 # InternLM系列
                 "internlm/internlm2_5-7b-chat",      # InternLM2.5 7B - 免费
-                "internlm/internlm2_5-20b-chat",     # InternLM2.5 20B
                 # Mistral系列
                 "mistralai/Mistral-7B-Instruct-v0.2", # Mistral 7B - 免费
                 # 专业版模型(付费)
@@ -273,16 +270,17 @@ class CloudLLMClient:
             "stream_format": "openai"
         },
         
-        # OpenAI
+        # OpenAI (2026年最新)
         CloudProvider.OPENAI: {
             "name": "OpenAI",
             "base_url": "https://api.openai.com/v1",
-            "default_model": "gpt-3.5-turbo",
+            "default_model": "gpt-4o",
             "models": [
-                "gpt-3.5-turbo",
-                "gpt-4",
-                "gpt-4-turbo",
-                "gpt-4o"
+                "gpt-5.2",                      # GPT-5.2 - 最新
+                "gpt-4o",                       # GPT-4o
+                "gpt-4-turbo",                  # GPT-4 Turbo
+                "gpt-4",                        # GPT-4
+                "gpt-3.5-turbo"                 # GPT-3.5
             ],
             "api_format": "openai",
             "stream_format": "openai"
