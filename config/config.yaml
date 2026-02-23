@@ -59,78 +59,51 @@ cloud_api:
   # app_id: ""
   
   # 模型名称 (可选，不设置则使用默认值)
-  # ===== 2026年最新推荐模型 =====
+  # ===== 2026年2月最新推荐模型 =====
   # 
-  # dashscope (阿里云):
-  #   - qwen-max / qwen-max-latest      # 最强旗舰版
+  # dashscope (阿里云) - Qwen3.5系列 (2026.02.16发布):
+  #   - qwen3.5-plus                    # 最新旗舰，原生多模态，性能超GPT-5.2
+  #   - qwen3.5-max                     # 最强版本
+  #   - qwen-max / qwen-max-latest      # Qwen3旗舰版
   #   - qwen-plus / qwen-plus-latest    # 均衡推荐版
   #   - qwen-turbo                      # 极速高性价比
-  #   - qwen-flash                      # 闪电超快版
-  #   - qwen-coder                      # 代码专用
   #   - qwen-long                       # 100万token长文本
-  #   - qwen3.5-plus                    # Qwen3.5最新
   #
-  # qianfan (百度千帆):
+  # qianfan (百度千帆) - ERNIE 5.0系列:
   #   - ernie-5.0-thinking-preview      # ERNIE 5.0旗舰
   #   - ernie-5.0-thinking-latest       # 5.0最新版
   #   - ernie-x1.1                      # X1.1增强版
   #   - ernie-4.5-turbo-128k            # 4.5长文本版
-  #   - deepseek-r1                     # 接入DeepSeek-R1
   #
   # hunyuan (腾讯混元):
   #   - hunyuan-2.0-thinking            # 2.0思考版(旗舰)
   #   - hunyuan-2.0-instruct            # 2.0指令版(推荐)
   #   - hunyuan-t1-latest               # T1推理模型
-  #   - hunyuan-a13b                    # A13B MoE模型
-  #   - hunyuan-lite                    # 免费版
   #
-  # doubao (字节豆包/火山引擎):
-  #   - doubao-pro-32k                  # Pro 32K(推荐)
-  #   - doubao-pro-4k                   # Pro 4K
-  #   - doubao-pro-256k                 # Pro 256K超长文本
-  #   - doubao-lite-4k/32k              # Lite轻量版
-  #   - doubao-1.8-4k/32k/256k          # 豆包1.8系列
-  #
-  # zhipu (智谱AI):
+  # zhipu (智谱AI) - GLM-5系列:
+  #   - glm-5                           # 最新开源之王，编程/推理极强
+  #   - glm-4.7-flash                   # 4.7极速版
+  #   - glm-4.7                         # GLM-4.7旗舰
   #   - glm-4-plus                      # Plus旗舰版
-  #   - glm-4                           # GLM-4标准版
   #   - glm-4-air                       # Air均衡版(推荐)
-  #   - glm-4-airx                      # AirX极速版
   #   - glm-4-flash                     # Flash免费版
-  #   - glm-4-9b-chat                   # 9B开源版
   #
-  # moonshot (月之暗面/Kimi):
-  #   - moonshot-v1-8k                  # 8K上下文
-  #   - moonshot-v1-32k                 # 32K上下文(推荐)
+  # moonshot (月之暗面/Kimi) - K2.5系列:
+  #   - kimi-k2.5                       # 最新版，推理能力强
+  #   - kimi-k2.5-thinking              # 思考版
+  #   - moonshot-v1-32k                 # 32K上下文
   #   - moonshot-v1-128k                # 128K长文本
   #
-  # minimax:
-  #   - abab6.5s-chat                   # 6.5s极速(200K上下文)
-  #   - abab6.5-chat                    # 6.5标准版
-  #   - abab6.5t-chat                   # 6.5t万亿参数
-  #
-  # yi (零一万物):
-  #   - yi-lightning                    # Lightning极速版
-  #   - yi-large                        # Large旗舰版
-  #   - yi-medium                       # Medium标准版
-  #   - yi-spark                        # Spark轻量版
-  #
-  # spark (讯飞星火):
-  #   - lite                            # Lite免费版
-  #   - generalv3                       # 标准版v3
-  #   - generalv3.5                     # 增强版v3.5
-  #   - 4.0Ultra                        # 4.0Ultra旗舰版
-  #
-  # deepseek:
+  # deepseek - V3.2系列:
   #   - deepseek-chat                   # V3.2通用对话(128K)
   #   - deepseek-reasoner               # R1推理模型(思维链)
+  #   - deepseek-v3.2                   # V3.2最新
   #
-  # siliconflow (硅基流动):
-  #   - deepseek-ai/DeepSeek-V3         # DeepSeek V3
+  # siliconflow (硅基流动) - 100+开源模型:
+  #   - Qwen/Qwen3-235B-A22B            # Qwen3 MoE旗舰
+  #   - Qwen/Qwen3-30B-A3B              # Qwen3 MoE轻量
   #   - deepseek-ai/DeepSeek-V3.2       # DeepSeek V3.2
   #   - deepseek-ai/DeepSeek-R1         # DeepSeek R1
-  #   - Qwen/Qwen2.5-7B-Instruct        # Qwen2.5 7B(免费)
-  #   - Qwen/Qwen2.5-72B-Instruct       # Qwen2.5 72B
   #   - THUDM/glm-4-9b-chat             # GLM-4 9B(免费)
   #   - zai-org/GLM-4.7                 # GLM-4.7
   #

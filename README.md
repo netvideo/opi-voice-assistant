@@ -16,15 +16,27 @@
 | ASR | Qwen3-ASR-0.6B | ~1.2GB | transformers | 支持方言 |
 | LLM | Qwen3-0.6B | ~700MB | RKLLM | 4GB内存, 支持Function Calling |
 | LLM | Qwen3-1.7B | ~1.8GB | RKLLM | 8GB内存, 支持Function Calling [推荐] |
-| LLM | 云端API | - | HTTP | 阿里云/DeepSeek等 |
+| LLM | 云端API | - | HTTP | Qwen3.5/GLM-5/DeepSeek V3.2等 |
 | TTS | Qwen3-TTS-0.6B | ~1.2GB | transformers | 支持克隆 |
 
 ### LLM 模型选择
 
+#### 本地部署 (RK3588 NPU)
+
 | 模型 | 内存占用 | 推理速度 | Function Calling | 推荐场景 |
 |------|----------|----------|------------------|----------|
-| **Qwen3-0.6B** | ~700MB | 15-20 t/s | ✅ 支持 | 4GB内存设备 |
-| **Qwen3-1.7B** | ~1.8GB | 8-12 t/s | ✅ 支持 | 8GB内存设备 [推荐] |
+| **Qwen3-0.6B** | ~700MB | 15-20 t/s | ✅ | 4GB内存设备 |
+| **Qwen3-1.7B** | ~1.8GB | 8-12 t/s | ✅ | 8GB内存设备 [推荐] |
+
+#### 云端API (2026最新模型)
+
+| 模型 | 提供商 | 特点 |
+|------|--------|------|
+| **Qwen3.5-397B-A17B** | 阿里云 | 原生多模态，性能超越GPT-5.2 |
+| **GLM-5** | 智谱AI | 开源之王，编程/推理极强 |
+| **DeepSeek V3.2** | DeepSeek | 极致性价比，1M上下文 |
+| **Kimi K2.5** | 月之暗面 | 超长上下文，推理能力强 |
+| **GPT-5.2** | OpenAI | 生态完善，工具调用稳定 |
 
 ## 项目结构
 
