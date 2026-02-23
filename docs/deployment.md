@@ -225,9 +225,6 @@ python3 src/main.py --audio test.wav
 ```bash
 # 设置为性能模式
 echo performance | sudo tee /sys/bus/cpu/devices/cpu*/cpufreq/scaling_governor
-
-# 或者运行项目提供的脚本
-sudo bash scripts/fix_freq_rk3588.sh
 ```
 
 ### 2. 内存优化

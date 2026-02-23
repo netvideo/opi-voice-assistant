@@ -343,8 +343,8 @@ class CloudLLMClient:
         
         # 聊天端点
         api_format = self.provider_config['api_format']
-        if api_format == 'aliyun':
-            self.chat_endpoint = '/services/aigc/text-generation/generation'
+        if api_format == 'qianfan':
+            self.chat_endpoint = '/chat/completions'
         else:
             self.chat_endpoint = '/chat/completions'
         
@@ -451,9 +451,7 @@ class CloudLLMClient:
                 
             line = line.decode('utf-8')
             
-            # 处理不同格式
             if stream_format == 'openai':
-                # OpenAI兼容格式
                 if line.startswith('data: '):
                     line = line[6:]
                 
@@ -469,18 +467,30 @@ class CloudLLMClient:
                 except json.JSONDecodeError:
                     continue
                     
-            elif stream_format == 'aliyun':
-                # 阿里云格式
+            elif stream_format == 'qianfan':
                 if line.startswith('data: '):
                     line = line[6:]
                 
                 try:
                     chunk = json.loads(line)
-                    content = chunk.get('output', {}).get('choices', [{}])[0].get('message', {}).get('content', '')
+                    content = chunk.get('result', '')
                     if content:
                         full_response += content
                         callback(content)
-                except:
+                except (json.JSONDecodeError, KeyError):
+                    continue
+                    
+            elif stream_format == 'zhipu':
+                if line.startswith('data: '):
+                    line = line[6:]
+                
+                try:
+                    chunk = json.loads(line)
+                    content = chunk.get('choices', [{}])[0].get('delta', {}).get('content', '')
+                    if content:
+                        full_response += content
+                        callback(content)
+                except (json.JSONDecodeError, KeyError):
                     continue
         
         return full_response
@@ -494,27 +504,18 @@ class CloudLLMClient:
         api_format = self.provider_config['api_format']
         
         if api_format == 'openai':
-            # 标准OpenAI格式
-            headers["Authorization"] = f"Bearer {self.api_key}"
-            
-        elif api_format == 'aliyun':
-            # 阿里云格式
             headers["Authorization"] = f"Bearer {self.api_key}"
             
         elif api_format == 'qianfan':
-            # 百度千帆格式
             headers["Authorization"] = f"Bearer {self.api_key}"
             
         elif api_format == 'zhipu':
-            # 智谱AI格式
             headers["Authorization"] = self.api_key
             
         elif api_format == 'hunyuan':
-            # 腾讯混元需要签名
             headers["Authorization"] = f"Bearer {self.api_key}"
             
         elif api_format == 'minimax':
-            # MiniMax格式
             headers["Authorization"] = f"Bearer {self.api_key}"
             headers["Group-Id"] = self.config.get('group_id', '')
         
@@ -532,7 +533,6 @@ class CloudLLMClient:
         max_tokens = kwargs.get('max_tokens', 512)
         
         if api_format == 'openai':
-            # 标准OpenAI格式
             return {
                 "model": self.model,
                 "messages": messages,
@@ -541,22 +541,7 @@ class CloudLLMClient:
                 "max_tokens": max_tokens
             }
             
-        elif api_format == 'aliyun':
-            # 阿里云格式
-            return {
-                "model": self.model,
-                "input": {
-                    "messages": messages
-                },
-                "parameters": {
-                    "result_format": "message",
-                    "temperature": temperature,
-                    "max_tokens": max_tokens
-                }
-            }
-            
         elif api_format == 'qianfan':
-            # 百度千帆格式
             return {
                 "model": self.model,
                 "messages": messages,
@@ -566,7 +551,6 @@ class CloudLLMClient:
             }
             
         elif api_format == 'zhipu':
-            # 智谱AI格式
             return {
                 "model": self.model,
                 "messages": messages,
@@ -576,7 +560,6 @@ class CloudLLMClient:
             }
             
         elif api_format == 'minimax':
-            # MiniMax格式
             return {
                 "model": self.model,
                 "messages": messages,
@@ -586,7 +569,6 @@ class CloudLLMClient:
             }
             
         elif api_format == 'hunyuan':
-            # 腾讯混元格式
             return {
                 "Model": self.model,
                 "Messages": messages,
@@ -595,7 +577,6 @@ class CloudLLMClient:
                 "MaxTokens": max_tokens
             }
         
-        # 默认使用OpenAI格式
         return {
             "model": self.model,
             "messages": messages,
@@ -609,24 +590,16 @@ class CloudLLMClient:
         api_format = self.provider_config['api_format']
         
         try:
-            if api_format == 'aliyun':
-                # 阿里云格式
-                return result.get("output", {}).get("choices", [{}])[0].get("message", {}).get("content", "")
-            
-            elif api_format == 'qianfan':
-                # 百度千帆格式
+            if api_format == 'qianfan':
                 return result.get("result", "")
             
             elif api_format == 'hunyuan':
-                # 腾讯混元格式
                 return result.get("Choices", [{}])[0].get("Message", {}).get("Content", "")
             
             elif api_format == 'minimax':
-                # MiniMax格式
                 return result.get("choices", [{}])[0].get("message", {}).get("content", "")
             
             else:
-                # 标准OpenAI格式
                 return result.get("choices", [{}])[0].get("message", {}).get("content", "")
                 
         except Exception as e:

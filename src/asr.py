@@ -33,13 +33,11 @@ class ASRModule:
         try:
             logger.info(f"正在加载ASR模型: {self.model_path}")
             
-            # 加载processor
             self.processor = AutoProcessor.from_pretrained(
                 self.model_path,
                 local_files_only=True
             )
             
-            # 加载模型 (使用4bit量化减少内存占用)
             self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
                 self.model_path,
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,

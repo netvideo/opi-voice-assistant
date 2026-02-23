@@ -87,13 +87,14 @@ class TTSModule:
             if self.device == "cpu":
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
             
-            # 推理
             with torch.no_grad():
                 outputs = self.model.generate(**inputs)
             
-            # 获取音频数据
-            audio_data = outputs.cpu().numpy().squeeze()
-            sampling_rate = 24000  # Qwen3-TTS使用24kHz
+            if isinstance(outputs, torch.Tensor):
+                audio_data = outputs.squeeze().cpu().numpy()
+            else:
+                audio_data = outputs.cpu().numpy().squeeze()
+            sampling_rate = 24000
             
             # 保存到文件
             if output_file:

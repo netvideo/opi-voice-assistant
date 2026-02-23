@@ -12,15 +12,8 @@ import threading
 import numpy as np
 from pathlib import Path
 
-# 添加项目根目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
+os.makedirs('logs', exist_ok=True)
 
-from asr import ASRModule, ASRStreamHandler
-from llm import RKLLMRuntime, SimpleLLM
-from tts import TTSModule, TTSStreamHandler
-from cloud_api import HybridLLM, CloudLLMClient, NetworkChecker
-
-# 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -31,25 +24,35 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+sys.path.insert(0, str(Path(__file__).parent))
+
+from typing import Optional, List, Dict, Any
+
+from asr import ASRModule, ASRStreamHandler
+from llm import RKLLMRuntime, SimpleLLM
+from tts import TTSModule, TTSStreamHandler
+from cloud_api import HybridLLM, CloudLLMClient, NetworkChecker
+
 
 class VoiceAssistant:
     """语音助手主类"""
+    
+    asr: Optional[ASRModule]
+    llm: Optional[Any]  # RKLLMRuntime | HybridLLM | SimpleLLM
+    tts: Optional[TTSModule]
+    local_llm: Optional[RKLLMRuntime]
     
     def __init__(self, config_path="config/config.yaml"):
         """初始化语音助手"""
         self.config = self._load_config(config_path)
         self.running = False
         
-        # 初始化各模块
         self.asr = None
-        self.llm = None  # 可能是本地LLM或HybridLLM
+        self.llm = None
         self.tts = None
-        
-        # 纯本地LLM实例 (用于HybridLLM)
         self.local_llm = None
         
-        # 对话历史
-        self.conversation_history = []
+        self.conversation_history: List[Dict[str, str]] = []
         self.max_history = self.config.get('max_history', 10)
         
     def _load_config(self, config_path):
@@ -151,7 +154,6 @@ class VoiceAssistant:
         cloud_config = self.config.get('cloud_api', {})
         use_cloud = cloud_config.get('enabled', False)
         
-        # 首先加载本地LLM (作为备选)
         llm_path = self.config['models']['llm']
         if os.path.exists(llm_path):
             logger.info("加载本地LLM...")
@@ -167,7 +169,6 @@ class VoiceAssistant:
         else:
             logger.warning(f"本地LLM模型不存在: {llm_path}")
         
-        # 如果启用云端，创建混合LLM
         if use_cloud and cloud_config.get('api_key'):
             try:
                 logger.info("配置云端LLM...")
@@ -182,12 +183,12 @@ class VoiceAssistant:
                 logger.error(f"混合LLM配置失败: {e}")
                 self.llm = self.local_llm
         else:
-            # 仅使用本地LLM
             self.llm = self.local_llm
             if use_cloud and not cloud_config.get('api_key'):
                 logger.warning("云端API已启用但未配置API key")
         
         if self.llm is None:
+            logger.error("无法初始化任何LLM (本地和云端都不可用)")
             return False
         
         return True
@@ -210,8 +211,15 @@ class VoiceAssistant:
         Args:
             audio_file: 音频文件路径 (None则使用麦克风)
         """
+        if self.asr is None or self.llm is None or self.tts is None:
+            logger.error("模块未完全初始化")
+            return
+        
+        assert self.asr is not None
+        assert self.llm is not None
+        assert self.tts is not None
+        
         try:
-            # 1. 语音识别
             if audio_file:
                 logger.info(f"处理音频文件: {audio_file}")
                 user_text = self.asr.transcribe_file(audio_file)
@@ -225,19 +233,16 @@ class VoiceAssistant:
             
             logger.info(f"用户说: {user_text}")
             
-            # 2. LLM处理
             self.conversation_history.append({"role": "user", "content": user_text})
             
             if len(self.conversation_history) > self.max_history:
                 self.conversation_history = self.conversation_history[-self.max_history:]
             
-            # 添加系统提示词
             messages = self._prepare_messages_with_system()
             
             logger.info("LLM思考中...")
             start_time = time.time()
             
-            # 使用LLM生成回复
             assistant_text = self._generate_llm_response(messages)
             
             elapsed = time.time() - start_time
@@ -245,7 +250,6 @@ class VoiceAssistant:
             
             self.conversation_history.append({"role": "assistant", "content": assistant_text})
             
-            # 3. 语音合成
             logger.info("合成语音...")
             self.tts.synthesize(assistant_text, play_immediately=True)
             
@@ -268,7 +272,10 @@ class VoiceAssistant:
     
     def _generate_llm_response(self, messages: list) -> str:
         """使用LLM生成回复"""
-        # 获取LLM配置
+        llm = self.llm
+        if llm is None:
+            return "LLM模块未初始化"
+        
         llm_config = self.config.get('llm', {})
         cloud_config = self.config.get('cloud_api', {})
         
@@ -277,14 +284,13 @@ class VoiceAssistant:
             'max_tokens': cloud_config.get('max_tokens', llm_config.get('max_new_tokens', 512))
         }
         
-        if isinstance(self.llm, HybridLLM):
-            return self.llm.chat(messages, **kwargs)
-        elif isinstance(self.llm, RKLLMRuntime):
-            return self.llm.chat(messages)
+        if isinstance(llm, HybridLLM):
+            return llm.chat(messages, **kwargs)
+        elif isinstance(llm, RKLLMRuntime):
+            return llm.chat(messages)
         else:
-            # 简化版本
             prompt = self._build_simple_prompt(messages)
-            return self.llm.generate(prompt)
+            return llm.generate(prompt)
     
     def _build_simple_prompt(self, messages):
         """构建简单prompt"""
@@ -399,6 +405,12 @@ class VoiceAssistant:
     
     def _process_text(self, text):
         """处理文本输入"""
+        if self.tts is None:
+            logger.error("TTS模块未初始化")
+            return
+        
+        assert self.tts is not None
+        
         logger.info(f"用户: {text}")
         
         self.conversation_history.append({"role": "user", "content": text})
@@ -445,9 +457,7 @@ def main():
     parser.add_argument('--cloud', action='store_true', help='强制使用云端API')
     parser.add_argument('--local', action='store_true', help='强制使用本地模型')
     args = parser.parse_args()
-    
-    os.makedirs('logs', exist_ok=True)
-    
+
     assistant = VoiceAssistant(args.config)
     
     # 覆盖模式设置

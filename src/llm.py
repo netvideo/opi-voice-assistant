@@ -224,7 +224,7 @@ class RKLLMRuntime:
                 last_error = self.lib.rkllm_get_last_error()
                 if last_error:
                     return last_error.decode('utf-8')
-            except:
+            except (OSError, AttributeError, UnicodeDecodeError):
                 pass
         
         return error_messages.get(error_code, f"未知错误 (代码: {error_code})")

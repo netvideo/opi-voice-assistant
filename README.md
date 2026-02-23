@@ -13,10 +13,10 @@
 
 | 组件 | 模型 | 大小 | 框架 | 备注 |
 |------|------|------|------|------|
-| ASR | qwen3-asr-0.6b | ~400MB (4bit) | transformers | 支持方言 |
+| ASR | qwen3-asr-0.6b | ~1.2GB | transformers | 支持方言 |
 | LLM | DeepSeek-R1-Distill-Qwen-1.5B | ~1GB (w4a16) | RKLLM | 本地优先 |
 | LLM | 云端API | - | HTTP | 阿里云/DeepSeek等 |
-| TTS | qwen3-tts-0.6b | ~400MB (4bit) | transformers | 支持克隆 |
+| TTS | qwen3-tts-0.6b | ~1.2GB | transformers | 支持克隆 |
 
 ## 项目结构
 
