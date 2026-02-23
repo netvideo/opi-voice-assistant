@@ -222,6 +222,59 @@ export DOUBAO_API_KEY="your-doubao-key"
 - "静音" → 系统静音
 - "音量调到50%" → 设置精确音量
 
+## 常见问题 (FAQ)
+
+### Q: 如何配置音频输入/输出设备？
+
+在 `config/config.yaml` 中配置:
+
+```yaml
+audio:
+  input_device: null   # 输入设备ID (null=自动选择)
+  output_device: null  # 输出设备ID (null=自动选择)
+```
+
+**查看可用设备**:
+```bash
+# 方法1: Python
+python3 -c "import sounddevice as sd; print(sd.query_devices())"
+
+# 方法2: 系统命令
+arecord -l   # 列出录音设备
+aplay -l     # 列出播放设备
+```
+
+**配置示例**:
+```yaml
+audio:
+  input_device: 1   # 使用设备ID 1 (如USB麦克风)
+  output_device: 0  # 使用设备ID 0 (如HDMI音频)
+```
+
+### Q: 如何切换板载麦克风和USB麦克风？
+
+1. 查看设备列表确定设备ID
+2. 在 `config/config.yaml` 中设置 `input_device` 为对应ID
+3. 板载麦克风通常是默认设备，USB麦克风插入后会有新的设备ID
+
+### Q: 全双工模式没有反应？
+
+检查以下几点:
+1. 确保麦克风已正确连接
+2. 检查 `input_device` 配置是否正确
+3. 尝试调低 `vad_aggressiveness` (0-3，数值越低越敏感)
+4. 查看日志: `tail -f logs/voice_assistant.log`
+
+### Q: 如何调整VAD灵敏度？
+
+```yaml
+audio:
+  vad_aggressiveness: 2  # 0=最敏感, 3=最严格
+```
+- 环境嘈杂: 设置为 3
+- 安静环境: 设置为 1 或 2
+- 经常漏检: 设置为 0
+
 ## 手动安装步骤
 
 详见 [docs/deployment.md](docs/deployment.md)
