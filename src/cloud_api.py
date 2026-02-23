@@ -490,6 +490,19 @@ class CloudLLMClient:
                         callback(content)
                 except (json.JSONDecodeError, KeyError):
                     continue
+                    
+            elif stream_format == 'minimax':
+                if line.startswith('data: '):
+                    line = line[6:]
+                
+                try:
+                    chunk = json.loads(line)
+                    content = chunk.get('choices', [{}])[0].get('delta', {}).get('content', '')
+                    if content:
+                        full_response += content
+                        callback(content)
+                except (json.JSONDecodeError, KeyError):
+                    continue
         
         return full_response
     
