@@ -91,27 +91,49 @@ chmod +x scripts/install.sh
 
 ### 方案1: 使用预转换模型 (推荐)
 
-#### 下载预转换模型
+运行下载脚本，选择模型：
 ```bash
-# 从ModelScope下载 (国内推荐)
-pip install modelscope
-
-python3 << 'EOF'
-from modelscope import snapshot_download
-
-# 下载DeepSeek-R1-Distill-Qwen-1.5B RKLLM模型
-model_dir = snapshot_download(
-    'radxa/DeepSeek-R1-Distill-Qwen-1.5B_RKLLM',
-    local_dir='./models/llm/radxa_models'
-)
-print(f"模型下载到: {model_dir}")
-EOF
-
-# 移动模型文件
-cp models/llm/radxa_models/*.rkllm models/llm/
+chmod +x scripts/download_models.sh
+./scripts/download_models.sh
 ```
 
-### 方案2: 手动转换模型
+可选择的LLM模型：
+
+| 模型 | 内存占用 | 速度 | Function Calling | 推荐场景 |
+|------|----------|------|------------------|----------|
+| Qwen3-0.6B | ~700MB | 15-20 t/s | ✅ | 4GB内存设备 |
+| Qwen3-1.7B | ~1.8GB | 8-12 t/s | ✅ | 8GB内存设备 |
+
+### 方案2: 手动下载模型
+
+#### Qwen3-1.7B (推荐)
+```bash
+# 从HuggingFace下载预转换模型
+pip install huggingface_hub
+
+python3 << 'EOF'
+from huggingface_hub import hf_hub_download
+hf_hub_download(
+    repo_id="GatekeeperZA/Qwen3-1.7B-RKLLM-v1.2.3",
+    filename="Qwen3-1.7B-rk3588-w8a8.rkllm",
+    local_dir="./models/llm"
+)
+EOF
+```
+
+#### Qwen3-0.6B
+```bash
+python3 << 'EOF'
+from huggingface_hub import hf_hub_download
+hf_hub_download(
+    repo_id="dulimov/Qwen3-0.6B-rk3588-1.2.1-unsloth-16k",
+    filename="Qwen3-0.6B-rk3588-w8a8_g256-opt-1-hybrid-ratio-0.5.rkllm",
+    local_dir="./models/llm"
+)
+EOF
+```
+
+### 方案3: 手动转换模型 (高级)
 
 #### 在PC端准备 (需要Linux x86_64)
 
@@ -122,10 +144,10 @@ conda create -n rkllm python=3.8
 conda activate rkllm
 
 # 下载RKLLM Toolkit
-wget https://github.com/airockchip/rknn-llm/releases/download/v1.2.0/rkllm-toolkit-1.2.0-cp38-cp38-linux_x86_64.whl
+wget https://github.com/airockchip/rknn-llm/releases/download/v1.2.3/rkllm-toolkit-1.2.3-cp38-cp38-linux_x86_64.whl
 
 # 安装
-pip install rkllm-toolkit-1.2.0-cp38-cp38-linux_x86_64.whl
+pip install rkllm-toolkit-1.2.3-cp38-cp38-linux_x86_64.whl
 ```
 
 2. **下载原始模型**
@@ -133,18 +155,19 @@ pip install rkllm-toolkit-1.2.0-cp38-cp38-linux_x86_64.whl
 # 安装git-lfs
 git lfs install
 
-# 下载模型
-git clone https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
-cd DeepSeek-R1-Distill-Qwen-1.5B
-git lfs pull
+# Qwen3-1.7B
+git clone https://huggingface.co/Qwen/Qwen3-1.7B
+
+# 或 Qwen3-0.6B
+git clone https://huggingface.co/Qwen/Qwen3-0.6B
 ```
 
 3. **转换脚本** (save as `convert_to_rkllm.py`)
 ```python
 from rkllm.api import RKLLM
 
-# 配置
-modelpath = './DeepSeek-R1-Distill-Qwen-1.5B'
+# 配置 - Qwen3-1.7B
+modelpath = './Qwen3-1.7B'
 llm = RKLLM()
 
 # 加载模型
@@ -153,19 +176,19 @@ if ret != 0:
     print('加载失败')
     exit()
 
-# 构建RKLLM模型 (w4a16量化)
+# 构建RKLLM模型 (w8a8量化)
 ret = llm.build(
     do_quantization=True,
     optimization_level=1,
     target_platform='rk3588',
-    quantization_type='w4a16'
+    quantization_type='w8a8'
 )
 if ret != 0:
     print('构建失败')
     exit()
 
 # 导出
-ret = llm.export_rkllm('./DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm')
+ret = llm.export_rkllm('./Qwen3-1.7B-rk3588-w8a8.rkllm')
 if ret != 0:
     print('导出失败')
     exit()
@@ -180,7 +203,7 @@ python convert_to_rkllm.py
 
 5. **传输到Orange Pi**
 ```bash
-scp DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm orangepi@<ip>:~/opi-voice-assistant/models/llm/
+scp Qwen3-1.7B-rk3588-w8a8.rkllm orangepi@<ip>:~/opi-voice-assistant/models/llm/
 ```
 
 #### 下载ASR和TTS模型

@@ -28,18 +28,20 @@ def test_rkllm():
     print("=" * 60)
     
     # 模型路径 (请根据实际情况修改)
-    model_path = "models/llm/DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm"
+    # Qwen3-0.6B: models/llm/Qwen3-0.6B-rk3588-w8a8.rkllm
+    # Qwen3-1.7B: models/llm/Qwen3-1.7B-rk3588-w8a8.rkllm
+    model_path = "models/llm/Qwen3-1.7B-rk3588-w8a8.rkllm"
     
     if not os.path.exists(model_path):
         print(f"❌ 模型文件不存在: {model_path}")
-        print("请先下载或转换RKLLM模型")
+        print("请先下载RKLLM模型")
         return False
     
     try:
         print(f"\n1. 初始化RKLLM运行时...")
         print(f"   模型路径: {model_path}")
         
-        llm = RKLLMRuntime(model_path, max_context_len=2048)
+        llm = RKLLMRuntime(model_path, max_context_len=4096)
         
         print("\n2. 加载模型...")
         if not llm.load_model():
@@ -103,8 +105,9 @@ def test_transformers_fallback():
     print("Transformers 备选方案测试")
     print("=" * 60)
     
-    # 注意: 这需要下载完整的HuggingFace模型 (约3GB)
-    model_path = "models/llm/DeepSeek-R1-Distill-Qwen-1.5B"
+    # 注意: 这需要下载完整的HuggingFace模型
+    # Qwen3-0.6B 或 Qwen3-1.7B
+    model_path = "models/llm/Qwen3-1.7B"
     
     if not os.path.exists(model_path):
         print(f"❌ 模型目录不存在: {model_path}")
@@ -151,8 +154,8 @@ def test_auto_select():
     print("=" * 60)
     
     # 尝试自动选择 (优先RKLLM，失败则回退到Transformers)
-    model_path_rkllm = "models/llm/DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm"
-    model_path_hf = "models/llm/DeepSeek-R1-Distill-Qwen-1.5B"
+    model_path_rkllm = "models/llm/Qwen3-1.7B-rk3588-w8a8.rkllm"
+    model_path_hf = "models/llm/Qwen3-1.7B"
     
     # 使用存在的模型路径
     model_path = model_path_rkllm if os.path.exists(model_path_rkllm) else model_path_hf

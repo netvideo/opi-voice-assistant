@@ -82,7 +82,7 @@ class VoiceAssistant:
         return {
             'models': {
                 'asr': 'models/asr/Qwen3-ASR-0.6B',
-                'llm': 'models/llm/DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm',
+                'llm': 'models/llm/Qwen3-0.6B-rk3588-w8a8.rkllm',
                 'tts': 'models/tts/Qwen3-TTS-0.6B'
             },
             'cloud_api': {

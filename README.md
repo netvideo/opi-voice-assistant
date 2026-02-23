@@ -96,7 +96,7 @@ python3 src/main.py --local
 - 实时流式识别
 
 ### 🧠 大语言模型
-- **本地**: DeepSeek-R1-Distill-Qwen-1.5B (1.5B参数，支持NPU加速)
+- **本地**: Qwen3-0.6B 或 Qwen3-1.7B (支持NPU加速和Function Calling)
 - **云端**: 支持12+国内主流AI平台 (2026年最新模型)
   - 阿里云 (通义千问Qwen3/3.5系列)
   - 百度千帆 (文心一言ERNIE 5.0/X1.1/4.5系列)

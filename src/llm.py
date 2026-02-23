@@ -1,7 +1,8 @@
 """
 LLM模块 - 大语言模型推理
-使用 DeepSeek-R1-Distill-Qwen-1.5B + RKLLM
+支持 Qwen3-0.6B / Qwen3-1.7B + RKLLM
 基于 Rockchip RK3588 NPU
+支持 Function Calling / Tool Calling
 """
 import ctypes
 import os

@@ -24,11 +24,18 @@ RKLLM 是瑞芯微 (Rockchip) 为 RK3588/RK3576 等芯片提供的 LLM 推理框
 
 ### 支持的模型
 
+- Qwen3 系列 (支持 Function Calling) ✅ 推荐
 - Qwen/Qwen2 系列
 - Llama/Llama2 系列
-- DeepSeek 系列
 - Phi-2/Phi-3 系列
 - 其他 HuggingFace 格式的 LLM
+
+**推荐模型**:
+
+| 模型 | 内存占用 | 推理速度 | Function Calling |
+|------|----------|----------|------------------|
+| Qwen3-0.6B | ~700MB | 15-20 t/s | ✅ |
+| Qwen3-1.7B | ~1.8GB | 8-12 t/s | ✅ |
 
 ---
 
@@ -120,10 +127,11 @@ pip install rkllm-toolkit-1.2.0-cp38-cp38-linux_x86_64.whl
 # 安装git-lfs
 git lfs install
 
-# 下载模型
-git clone https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
-cd DeepSeek-R1-Distill-Qwen-1.5B
-git lfs pull
+# Qwen3-1.7B (推荐)
+git clone https://huggingface.co/Qwen/Qwen3-1.7B
+
+# 或 Qwen3-0.6B
+git clone https://huggingface.co/Qwen/Qwen3-0.6B
 ```
 
 #### 步骤3: 创建转换脚本
@@ -134,8 +142,8 @@ git lfs pull
 from rkllm.api import RKLLM
 import os
 
-# 配置
-modelpath = './DeepSeek-R1-Distill-Qwen-1.5B'
+# 配置 - Qwen3-1.7B
+modelpath = './Qwen3-1.7B'
 llm = RKLLM()
 
 # 加载HuggingFace模型
@@ -145,20 +153,20 @@ if ret != 0:
     print('加载失败')
     exit()
 
-# 构建RKLLM模型 (w4a16量化)
+# 构建RKLLM模型 (w8a8量化)
 print("构建RKLLM模型...")
 ret = llm.build(
     do_quantization=True,
     optimization_level=1,
     target_platform='rk3588',
-    quantization_type='w4a16'
+    quantization_type='w8a8'
 )
 if ret != 0:
     print('构建失败')
     exit()
 
 # 导出
-output_path = './DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm'
+output_path = './Qwen3-1.7B-rk3588-w8a8.rkllm'
 print(f"导出模型到: {output_path}")
 ret = llm.export_rkllm(output_path)
 if ret != 0:
@@ -174,32 +182,39 @@ print('✓ 转换成功!')
 python convert_to_rkllm.py
 ```
 
-转换完成后，会生成 `.rkllm` 文件 (约 1GB)。
+转换完成后，会生成 `.rkllm` 文件。
 
 #### 步骤5: 传输到Orange Pi
 
 ```bash
-scp DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm \
+scp Qwen3-1.7B-rk3588-w8a8.rkllm \
     orangepi@<orange-pi-ip>:~/opi-voice-assistant/models/llm/
 ```
 
-### 使用预转换模型
+### 使用预转换模型 (推荐)
 
-如果不想自己转换，可以下载社区预转换的模型：
+直接下载预转换的 RKLLM 模型：
 
 ```bash
-# 从ModelScope下载
-pip install modelscope
+# Qwen3-1.7B
+pip install huggingface_hub
 python3 -c "
-from modelscope import snapshot_download
-snapshot_download(
-    'radxa/DeepSeek-R1-Distill-Qwen-1.5B_RKLLM',
-    local_dir='./models/llm/radxa_models'
+from huggingface_hub import hf_hub_download
+hf_hub_download(
+    repo_id='GatekeeperZA/Qwen3-1.7B-RKLLM-v1.2.3',
+    filename='Qwen3-1.7B-rk3588-w8a8.rkllm',
+    local_dir='./models/llm'
 )
 "
 
-# 复制到正确位置
-cp models/llm/radxa_models/*.rkllm models/llm/
+# Qwen3-0.6B
+python3 -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download(
+    repo_id='dulimov/Qwen3-0.6B-rk3588-1.2.1-unsloth-16k',
+    local_dir='./models/llm'
+)
+"
 ```
 
 ---
@@ -213,8 +228,8 @@ from src.llm import RKLLMRuntime
 
 # 1. 创建实例
 llm = RKLLMRuntime(
-    model_path="models/llm/DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm",
-    max_context_len=2048
+    model_path="models/llm/Qwen3-1.7B-rk3588-w8a8.rkllm",
+    max_context_len=4096
 )
 
 # 2. 加载模型
@@ -412,13 +427,13 @@ sudo swapon /swapfile
 
 ## 性能参考
 
-在 Orange Pi 5 Plus (RK3588, 4GB RAM) 上的典型性能：
+在 Orange Pi 5 Plus (RK3588) 上的典型性能：
 
-| 模型 | 量化 | 内存占用 | 推理速度 | 推荐场景 |
-|------|------|----------|----------|----------|
-| DeepSeek-R1-1.5B | w4a16 | ~1.5GB | 8-12 t/s | 日常对话 |
-| Qwen2-1.5B | w4a16 | ~1.5GB | 8-12 t/s | 通用任务 |
-| TinyLlama-1.1B | w4a16 | ~1.2GB | 10-15 t/s | 简单任务 |
+| 模型 | 量化 | 内存占用 | 推理速度 | Function Calling | 推荐场景 |
+|------|------|----------|----------|------------------|----------|
+| Qwen3-0.6B | w8a8 | ~700MB | 15-20 t/s | ✅ | 4GB内存设备 |
+| Qwen3-1.7B | w8a8 | ~1.8GB | 8-12 t/s | ✅ | 8GB内存设备 [推荐] |
+| TinyLlama-1.1B | w4a16 | ~1.2GB | 10-15 t/s | ❌ | 简单任务 |
 
 *注: t/s = tokens/second*
 
@@ -430,6 +445,7 @@ sudo swapon /swapfile
 - [RKLLM Toolkit 文档](https://github.com/airockchip/rknn-llm/tree/main/rkllm-toolkit)
 - [RKLLM Runtime 示例](https://github.com/airockchip/rknn-llm/tree/main/rkllm-runtime/examples)
 - [Orange Pi 5 Plus 官方文档](http://www.orangepi.cn/)
+- [Qwen3 模型](https://huggingface.co/Qwen/Qwen3-1.7B)
 
 ---
 
