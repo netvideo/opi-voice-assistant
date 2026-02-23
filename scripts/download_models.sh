@@ -1,5 +1,6 @@
 #!/bin/bash
 # 模型下载脚本
+# 支持选择不同的LLM模型
 
 set -e
 
@@ -9,23 +10,63 @@ echo "=========================================="
 
 # 配置
 MODELS_DIR="/home/kwh/pi/opi-voice-assistant/models"
-HF_MIRROR="https://hf-mirror.com"  # 国内镜像
+HF_MIRROR="https://hf-mirror.com"
 
 # 创建目录
 mkdir -p ${MODELS_DIR}/{asr,llm,tts}
 
+# ===========================================
+# 选择LLM模型
+# ===========================================
 echo ""
-echo "[1/3] 下载 ASR 模型 (qwen3-asr-0.6b)..."
+echo "请选择LLM模型:"
+echo "  1) Qwen3-0.6B  (~700MB,  适合4GB内存, 支持function calling)"
+echo "  2) Qwen3-1.7B  (~1.8GB,  适合8GB内存, 支持function calling) [推荐]"
+echo "  3) DeepSeek-R1-Distill-Qwen-1.5B (~1GB, 无function calling)"
+echo ""
+read -p "请输入选择 [1-3, 默认2]: " llm_choice
+llm_choice=${llm_choice:-2}
+
+case $llm_choice in
+    1)
+        LLM_MODEL="Qwen3-0.6B"
+        LLM_FILE="Qwen3-0.6B-rk3588-w8a8.rkllm"
+        LLM_HF="dulimov/Qwen3-0.6B-rk3588-1.2.1-unsloth-16k"
+        ;;
+    2)
+        LLM_MODEL="Qwen3-1.7B"
+        LLM_FILE="Qwen3-1.7B-rk3588-w8a8.rkllm"
+        LLM_HF="GatekeeperZA/Qwen3-1.7B-RKLLM-v1.2.3"
+        ;;
+    3)
+        LLM_MODEL="DeepSeek-R1-Distill-Qwen-1.5B"
+        LLM_FILE="DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm"
+        LLM_HF=""
+        ;;
+    *)
+        echo "无效选择，使用默认 Qwen3-1.7B"
+        LLM_MODEL="Qwen3-1.7B"
+        LLM_FILE="Qwen3-1.7B-rk3588-w8a8.rkllm"
+        LLM_HF="GatekeeperZA/Qwen3-1.7B-RKLLM-v1.2.3"
+        ;;
+esac
+
+echo ""
+echo "已选择: ${LLM_MODEL}"
+
+# ===========================================
+# 下载ASR模型
+# ===========================================
+echo ""
+echo "[1/3] 下载 ASR 模型 (Qwen3-ASR-0.6B)..."
 cd ${MODELS_DIR}/asr
 if [ ! -d "Qwen3-ASR-0.6B" ]; then
     echo "  正在下载..."
-    # 使用git-lfs下载
     if ! command -v git-lfs &> /dev/null; then
         sudo apt install -y git-lfs
         git lfs install
     fi
     
-    # 使用镜像加速
     GIT_LFS_SKIP_SMUDGE=1 git clone ${HF_MIRROR}/Qwen/Qwen3-ASR-0.6B Qwen3-ASR-0.6B || {
         echo "  镜像下载失败，尝试官方源..."
         GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/Qwen/Qwen3-ASR-0.6B Qwen3-ASR-0.6B
@@ -38,8 +79,11 @@ else
     echo "  ✓ ASR模型已存在"
 fi
 
+# ===========================================
+# 下载TTS模型
+# ===========================================
 echo ""
-echo "[2/3] 下载 TTS 模型 (qwen3-tts-0.6b)..."
+echo "[2/3] 下载 TTS 模型 (Qwen3-TTS-0.6B)..."
 cd ${MODELS_DIR}/tts
 if [ ! -d "Qwen3-TTS-0.6B" ]; then
     echo "  正在下载..."
@@ -55,65 +99,106 @@ else
     echo "  ✓ TTS模型已存在"
 fi
 
+# ===========================================
+# 下载LLM模型
+# ===========================================
 echo ""
-echo "[3/3] 下载 LLM 模型 (DeepSeek-R1-Distill-Qwen-1.5B)..."
+echo "[3/3] 下载 LLM 模型 (${LLM_MODEL})..."
 cd ${MODELS_DIR}/llm
 
-# 检查是否已有RKLLM格式模型
-if [ ! -f "DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm" ]; then
-    echo "  方法1: 尝试下载预转换的RKLLM模型..."
+if [ -f "${LLM_FILE}" ]; then
+    echo "  ✓ LLM模型已存在: ${LLM_FILE}"
+else
+    echo "  正在下载 ${LLM_MODEL} RKLLM模型..."
     
-    # 尝试从ModelScope下载（国内更快）
-    pip install modelscope -q
-    python3 << 'EOF'
-from modelscope import snapshot_download
+    pip install modelscope huggingface_hub -q 2>/dev/null || true
+    
+    python3 << EOF
 import os
+import sys
 
-try:
-    model_dir = snapshot_download(
-        'radxa/DeepSeek-R1-Distill-Qwen-1.5B_RKLLM',
-        local_dir='/home/kwh/pi/opi-voice-assistant/models/llm/radxa_models'
-    )
-    print(f"✓ 从ModelScope下载成功: {model_dir}")
-except Exception as e:
-    print(f"ModelScope下载失败: {e}")
-    print("将使用手动转换方式")
+llm_file = "${LLM_FILE}"
+llm_hf = "${LLM_HF}"
+llm_model = "${LLM_MODEL}"
+
+if llm_model == "DeepSeek-R1-Distill-Qwen-1.5B":
+    # DeepSeek模型从ModelScope下载
+    try:
+        from modelscope import snapshot_download
+        model_dir = snapshot_download(
+            'radxa/DeepSeek-R1-Distill-Qwen-1.5B_RKLLM',
+            local_dir='/home/kwh/pi/opi-voice-assistant/models/llm/deepseek_tmp'
+        )
+        import glob
+        rkllm_files = glob.glob(f"{model_dir}/**/*.rkllm", recursive=True)
+        if rkllm_files:
+            import shutil
+            shutil.copy(rkllm_files[0], f"/home/kwh/pi/opi-voice-assistant/models/llm/{llm_file}")
+            print(f"✓ 下载成功: {llm_file}")
+    except Exception as e:
+        print(f"ModelScope下载失败: {e}")
+        sys.exit(1)
+else:
+    # Qwen3模型从HuggingFace下载
+    try:
+        from huggingface_hub import hf_hub_download
+        hf_mirror = "${HF_MIRROR}"
+        
+        # 获取仓库中的rkllm文件列表
+        from huggingface_hub import list_repo_files
+        files = list_repo_files(llm_hf, endpoint=hf_mirror)
+        rkllm_files = [f for f in files if f.endswith('.rkllm')]
+        
+        if rkllm_files:
+            # 下载第一个rkllm文件
+            downloaded = hf_hub_download(
+                repo_id=llm_hf,
+                filename=rkllm_files[0],
+                local_dir="/home/kwh/pi/opi-voice-assistant/models/llm",
+                endpoint=hf_mirror
+            )
+            # 重命名为标准名称
+            import shutil
+            target = f"/home/kwh/pi/opi-voice-assistant/models/llm/{llm_file}"
+            if downloaded != target:
+                shutil.move(downloaded, target)
+            print(f"✓ 下载成功: {llm_file}")
+        else:
+            print("未找到RKLLM文件")
+            sys.exit(1)
+    except Exception as e:
+        print(f"下载失败: {e}")
+        print("请手动从以下地址下载:")
+        print(f"  https://huggingface.co/{llm_hf}")
+        sys.exit(1)
 EOF
     
-    # 查找下载的模型文件
-    if [ -d "radxa_models" ]; then
-        RKLLM_FILE=$(find radxa_models -name "*.rkllm" | head -1)
-        if [ -n "$RKLLM_FILE" ]; then
-            cp "$RKLLM_FILE" DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm
-            echo "  ✓ RKLLM模型准备完成"
+    if [ -f "${LLM_FILE}" ]; then
+        echo "  ✓ LLM模型下载完成"
+    else
+        echo "  ✗ LLM模型下载失败"
+        echo "  请手动从以下地址下载:"
+        if [ -n "${LLM_HF}" ]; then
+            echo "    https://huggingface.co/${LLM_HF}"
+        else
+            echo "    https://modelscope.cn/models/radxa/DeepSeek-R1-Distill-Qwen-1.5B_RKLLM"
         fi
     fi
 fi
 
-# 如果没有RKLLM格式，下载原始模型
-if [ ! -f "DeepSeek-R1-Distill-Qwen-1.5B_W4A16_RK3588.rkllm" ]; then
+# ===========================================
+# 更新配置文件
+# ===========================================
+CONFIG_FILE="/home/kwh/pi/opi-voice-assistant/config/config.yaml"
+if [ -f "$CONFIG_FILE" ]; then
+    sed -i "s|llm: models/llm/.*\.rkllm|llm: models/llm/${LLM_FILE}|g" "$CONFIG_FILE"
     echo ""
-    echo "  方法2: 下载原始模型并转换..."
-    
-    if [ ! -d "DeepSeek-R1-Distill-Qwen-1.5B" ]; then
-        echo "  下载原始模型..."
-        GIT_LFS_SKIP_SMUDGE=1 git clone ${HF_MIRROR}/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B DeepSeek-R1-Distill-Qwen-1.5B || {
-            echo "  镜像失败，尝试官方源..."
-            GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B DeepSeek-R1-Distill-Qwen-1.5B
-        }
-        cd DeepSeek-R1-Distill-Qwen-1.5B
-        git lfs pull
-        cd ..
-    fi
-    
-    echo ""
-    echo "  ⚠️  需要在PC端转换模型为RKLLM格式"
-    echo "     请参考 docs/deployment.md 中的转换指南"
-    echo "     或者使用预转换的模型文件"
+    echo "  ✓ 已更新配置文件"
 fi
 
-cd ${MODELS_DIR}/llm
-
+# ===========================================
+# 完成
+# ===========================================
 echo ""
 echo "=========================================="
 echo "  模型下载完成!"
@@ -122,10 +207,17 @@ echo ""
 echo "模型位置:"
 echo "  ASR: ${MODELS_DIR}/asr/Qwen3-ASR-0.6B"
 echo "  TTS: ${MODELS_DIR}/tts/Qwen3-TTS-0.6B"
-echo "  LLM: ${MODELS_DIR}/llm/"
-ls -lh ${MODELS_DIR}/llm/*.rkllm 2>/dev/null || echo "  (LLM模型需要转换或下载预转换版本)"
+echo "  LLM: ${MODELS_DIR}/llm/${LLM_FILE}"
+echo ""
+ls -lh ${MODELS_DIR}/llm/*.rkllm 2>/dev/null
+echo ""
+echo "内存占用估算:"
+case $llm_choice in
+    1) echo "  ~700MB  (适合4GB内存设备)" ;;
+    2) echo "  ~1.8GB  (适合8GB内存设备)" ;;
+    3) echo "  ~1GB    (适合4GB内存设备)" ;;
+esac
 echo ""
 echo "下一步:"
-echo "  如果LLM模型未准备就绪，请参考 docs/deployment.md 进行转换"
-echo "  或直接下载预转换模型"
+echo "  python3 src/main.py"
 echo ""

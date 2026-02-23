@@ -338,6 +338,7 @@ class RKLLMRuntime:
     def chat(self, 
              messages: list, 
              callback: Optional[Callable[[str], None]] = None,
+             tools: Optional[list] = None,
              **kwargs) -> str:
         """
         对话模式
@@ -345,37 +346,91 @@ class RKLLMRuntime:
         Args:
             messages: 消息列表，格式 [{"role": "user", "content": "..."}, ...]
             callback: 流式回调函数
+            tools: 工具定义列表 (function calling)
             **kwargs: 额外参数
             
         Returns:
             response: 生成的回复
         """
-        # 构建对话prompt
-        prompt = self._build_chat_prompt(messages)
+        prompt = self._build_chat_prompt(messages, tools)
         return self.generate(prompt, callback, **kwargs)
     
-    def _build_chat_prompt(self, messages: list) -> str:
+    def _build_chat_prompt(self, messages: list, tools: Optional[list] = None) -> str:
         """
         构建对话prompt
         
-        支持 DeepSeek-R1-Distill-Qwen 格式
+        支持 Qwen3 格式 (含 function calling) 和 DeepSeek-R1 格式
         """
+        import json
         prompt_parts = []
+        
+        # Qwen3 Function Calling 格式
+        if tools:
+            system_content = ""
+            if messages and messages[0].get("role") == "system":
+                system_content = messages[0].get("content", "")
+                messages = messages[1:]
+            
+            prompt_parts.append("system")
+            if system_content:
+                prompt_parts.append(f"{system_content}\n")
+            
+            prompt_parts.append("# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within XML tags:\n")
+            for tool in tools:
+                prompt_parts.append("\n")
+                prompt_parts.append(json.dumps(tool, ensure_ascii=False))
+            prompt_parts.append("\n\n\nFor each function call, return a json object with function name and arguments within XML tags:\n\n{\"name\": , \"arguments\": }\n\n")
+        else:
+            if messages and messages[0].get("role") == "system":
+                prompt_parts.append(f"system\n{messages[0].get('content', '')}\n")
+                messages = messages[1:]
         
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             
             if role == "system":
-                prompt_parts.append(f"<|im_start|>system\n{content}<|im_end|>")
+                prompt_parts.append(f"system\n{content}\n")
             elif role == "user":
-                prompt_parts.append(f"<|im_start|>user\n{content}<|im_end|>")
+                if tools and content.startswith("") and content.endswith(""):
+                    prompt_parts.append(f"{content}\n")
+                else:
+                    prompt_parts.append(f"user\n{content}\n")
             elif role == "assistant":
-                prompt_parts.append(f"<|im_start|>assistant\n{content}<|im_end|>")
+                prompt_parts.append(f"assistant\n{content}\n")
+            elif role == "tool":
+                prompt_parts.append(f"user\n{content}\n")
         
-        prompt_parts.append("<|im_start|>assistant\n")
+        prompt_parts.append("assistant\n")
         
-        return "\n".join(prompt_parts)
+        return "".join(prompt_parts)
+    
+    def parse_function_call(self, response: str) -> Optional[Dict[str, Any]]:
+        """
+        解析模型输出中的 function call
+        
+        Args:
+            response: 模型生成的回复
+            
+        Returns:
+            解析出的函数调用，格式: {"name": "func_name", "arguments": {...}}
+            如果没有 function call，返回 None
+        """
+        import json
+        import re
+        
+        pattern = r'\s*(\{.*?\})\s*'
+        match = re.search(pattern, response, re.DOTALL)
+        
+        if match:
+            try:
+                func_call = json.loads(match.group(1))
+                if "name" in func_call:
+                    return func_call
+            except json.JSONDecodeError:
+                pass
+        
+        return None
     
     def release(self):
         """释放RKLLM资源"""

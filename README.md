@@ -13,10 +13,18 @@
 
 | 组件 | 模型 | 大小 | 框架 | 备注 |
 |------|------|------|------|------|
-| ASR | qwen3-asr-0.6b | ~1.2GB | transformers | 支持方言 |
-| LLM | DeepSeek-R1-Distill-Qwen-1.5B | ~1GB (w4a16) | RKLLM | 本地优先 |
+| ASR | Qwen3-ASR-0.6B | ~1.2GB | transformers | 支持方言 |
+| LLM | Qwen3-0.6B | ~700MB | RKLLM | 4GB内存, 支持Function Calling |
+| LLM | Qwen3-1.7B | ~1.8GB | RKLLM | 8GB内存, 支持Function Calling [推荐] |
 | LLM | 云端API | - | HTTP | 阿里云/DeepSeek等 |
-| TTS | qwen3-tts-0.6b | ~1.2GB | transformers | 支持克隆 |
+| TTS | Qwen3-TTS-0.6B | ~1.2GB | transformers | 支持克隆 |
+
+### LLM 模型选择
+
+| 模型 | 内存占用 | 推理速度 | Function Calling | 推荐场景 |
+|------|----------|----------|------------------|----------|
+| **Qwen3-0.6B** | ~700MB | 15-20 t/s | ✅ 支持 | 4GB内存设备 |
+| **Qwen3-1.7B** | ~1.8GB | 8-12 t/s | ✅ 支持 | 8GB内存设备 [推荐] |
 
 ## 项目结构
 
