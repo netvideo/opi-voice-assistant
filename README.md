@@ -125,22 +125,22 @@ python3 src/main.py --local
 - 支持多轮对话和上下文记忆
 - 智能本地/云端切换
 
-## 支持的云端API供应商 (2026年最新)
+## 支持的云端API供应商 (2026年2月最新)
 
 | 供应商 | Provider名称 | 推荐模型 | 特点 |
 |--------|-------------|---------|------|
-| **阿里云** | `dashscope` | `qwen-plus`, `qwen-max` | 通义千问3.5系列，百万token上下文 |
+| **阿里云** | `dashscope` | `qwen3.5-plus`, `qwen3.5-max` | Qwen3.5原生多模态，性能超GPT-5.2 |
+| **智谱AI** | `zhipu` | `glm-5`, `glm-4.7-flash` | GLM-5开源之王，编程/推理极强 |
+| **DeepSeek** | `deepseek` | `deepseek-chat`, `deepseek-reasoner` | V3.2极致性价比，1M上下文 |
+| **月之暗面** | `moonshot` | `kimi-k2.5`, `kimi-k2.5-thinking` | K2.5推理能力强，全球开源第四 |
 | **百度千帆** | `qianfan` | `ernie-5.0-thinking-preview` | ERNIE 5.0原生全模态 |
 | **腾讯混元** | `hunyuan` | `hunyuan-2.0-thinking` | 混元2.0 MoE架构 |
+| **硅基流动** | `siliconflow` | `Qwen/Qwen3-235B-A22B` | 100+开源模型，免费额度 |
 | **字节豆包** | `doubao` | `doubao-pro-32k` | 火山方舟，256K上下文 |
-| **智谱AI** | `zhipu` | `glm-4-air`, `glm-4-plus` | GLM-4系列 |
-| **月之暗面** | `moonshot` | `moonshot-v1-32k` | Kimi，超长上下文 |
 | **MiniMax** | `minimax` | `abab6.5s-chat` | 200K上下文，MoE架构 |
 | **零一万物** | `yi` | `yi-lightning` | Lightning极速版 |
 | **讯飞星火** | `spark` | `4.0Ultra` | 4.0Ultra旗舰 |
-| **DeepSeek** | `deepseek` | `deepseek-chat`, `deepseek-reasoner` | V3.2/R1推理模型 |
-| **硅基流动** | `siliconflow` | `deepseek-ai/DeepSeek-V3` | 100+开源模型 |
-| **OpenAI** | `openai` | `gpt-4o`, `gpt-3.5-turbo` | GPT系列 |
+| **OpenAI** | `openai` | `gpt-5.2`, `gpt-4o` | GPT系列，生态完善 |
 
 ### 配置示例
 
@@ -149,7 +149,7 @@ cloud_api:
   enabled: true
   provider: dashscope              # 选择供应商
   api_key: "your-api-key"          # API密钥
-  model: "qwen-plus"               # 选择模型 (可选)
+  model: "qwen3.5-plus"            # 2026最新模型 (可选)
   prefer_cloud: true               # 优先使用云端
   auto_fallback: true              # 失败时回退本地
 ```
