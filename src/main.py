@@ -32,6 +32,8 @@ from asr import ASRModule, ASRStreamHandler
 from llm import RKLLMRuntime, SimpleLLM
 from tts import TTSModule, TTSStreamHandler
 from cloud_api import HybridLLM, CloudLLMClient, NetworkChecker
+from audio_manager import AudioManager, VolumeController
+from tools import get_default_tools, execute_tool
 
 
 class VoiceAssistant:
@@ -395,46 +397,177 @@ class VoiceAssistant:
                         print(f"文件不存在: {file_path}")
                 
                 else:
-                    self._process_text(cmd)
-                    
-            except KeyboardInterrupt:
-                print("\n再见!")
-                break
-            except Exception as e:
-                logger.error(f"错误: {e}")
+            self._process_text(cmd)
     
-    def _process_text(self, text):
-        """处理文本输入"""
-        if self.tts is None:
-            logger.error("TTS模块未初始化")
-            return
+    def run_duplex(self):
+        """全双工模式运行 - 支持同时录音和播放"""
+        logger.info("="*50)
+        logger.info("语音助手已启动 - 全双工模式")
+        logger.info("="*50)
         
-        assert self.tts is not None
-        
-        logger.info(f"用户: {text}")
-        
-        self.conversation_history.append({"role": "user", "content": text})
-        
-        if len(self.conversation_history) > self.max_history:
-            self.conversation_history = self.conversation_history[-self.max_history:]
-        
-        logger.info("思考中...")
-        start_time = time.time()
+        audio_config = self.config.get('audio', {})
+        audio_manager = AudioManager(audio_config)
         
         try:
-            messages = self._prepare_messages_with_system()
-            response = self._generate_llm_response(messages)
+            audio_manager.start()
+        except Exception as e:
+            logger.error(f"音频系统启动失败: {e}")
+            return
+        
+        self.running = True
+        audio_buffer = []
+        is_recording = False
+        
+        def on_interrupt():
+            """打断回调"""
+            if self.tts and audio_manager.is_running:
+                logger.info("检测到用户说话，打断播放...")
+                audio_manager.stop_playback()
+        
+        audio_manager.set_interrupt_callback(on_interrupt)
+        
+        tools = get_default_tools()
+        logger.info("工具已加载: " + ", ".join([t['function']['name'] for t in tools]))
+        
+        print("\n全双工模式 - 说'小助手'唤醒")
+        print("命令: quit 退出\n")
+        
+        wake_word = self.config.get('wake_word', '小助手')
+        
+        while self.running:
+            try:
+                chunk = audio_manager.get_audio_chunk(timeout=0.1)
+                
+                if chunk is None:
+                    continue
+                
+                msg_type, data = chunk
+                
+                if msg_type == 'speech_start':
+                    is_recording = True
+                    audio_buffer = []
+                    logger.info("开始录音...")
+                    
+                elif msg_type == 'speech_end' and is_recording:
+                    is_recording = False
+                    logger.info("录音结束，处理中...")
+                    
+                    if len(audio_buffer) > 0:
+                        audio_data = np.concatenate(audio_buffer)
+                        audio_buffer = []
+                        
+                        self._process_audio_duplex(audio_data, audio_manager, tools)
+                
+                elif msg_type == 'audio' and is_recording:
+                    audio_buffer.append(data)
+                
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                logger.error(f"处理错误: {e}")
+        
+        audio_manager.stop()
+        logger.info("全双工模式结束")
+    
+    def _process_audio_duplex(self, audio_data: np.ndarray, audio_manager, tools: list):
+        """处理音频 (全双工模式)"""
+        if self.asr is None:
+            return
+        
+        try:
+            text = self.asr.transcribe(audio_data)
+            
+            if not text:
+                logger.debug("未识别到语音")
+                return
+            
+            logger.info(f"用户说: {text}")
+            
+            self.conversation_history.append({"role": "user", "content": text})
+            
+            if len(self.conversation_history) > self.max_history:
+                self.conversation_history = self.conversation_history[-self.max_history:]
+            
+            messages = self._prepare_messages_with_tools(tools)
+            
+            logger.info("LLM思考中...")
+            start_time = time.time()
+            
+            response = self._generate_llm_response_with_tools(messages, tools)
             
             elapsed = time.time() - start_time
-            logger.info(f"助手 ({elapsed:.2f}s): {response}")
+            logger.info(f"LLM回复 ({elapsed:.2f}s): {response[:100]}...")
             
             self.conversation_history.append({"role": "assistant", "content": response})
             
-            logger.info("合成语音...")
-            self.tts.synthesize(response, play_immediately=True)
+            if self.tts is not None:
+                audio_manager.stop_listening()
+                self.tts.synthesize(response)
+                audio_data, sr = self.tts.synthesize(response, output_file=None)
+                if audio_data is not None:
+                    audio_manager.play_audio(audio_data, sr, blocking=False)
+                audio_manager.start_listening(lambda x: None)
             
         except Exception as e:
             logger.error(f"处理失败: {e}")
+    
+    def _prepare_messages_with_tools(self, tools: list) -> list:
+        """准备带工具定义的消息"""
+        messages = []
+        
+        system_prompt = self.config.get('system_prompt', '').strip()
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        
+        messages.extend(self.conversation_history)
+        
+        return messages
+    
+    def _generate_llm_response_with_tools(self, messages: list, tools: list) -> str:
+        """生成LLM响应，支持工具调用"""
+        llm = self.llm
+        if llm is None:
+            return "LLM模块未初始化"
+        
+        if isinstance(llm, RKLLMRuntime):
+            response = llm.chat(messages, tools=tools)
+        else:
+            response = llm.chat(messages)
+        
+        tool_call = self._parse_tool_call(response)
+        
+        if tool_call:
+            tool_name = tool_call.get("name")
+            tool_args = tool_call.get("arguments", {})
+            
+            logger.info(f"调用工具: {tool_name}({tool_args})")
+            
+            result = execute_tool(tool_name, tool_args)
+            
+            if result.get("success"):
+                return result.get("message", "操作成功")
+            else:
+                return f"操作失败: {result.get('error', '未知错误')}"
+        
+        return response
+    
+    def _parse_tool_call(self, response: str) -> dict:
+        """解析工具调用"""
+        import json
+        import re
+        
+        pattern = r'\s*(\{.*?\})\s*'
+        match = re.search(pattern, response, re.DOTALL)
+        
+        if match:
+            try:
+                data = json.loads(match.group(1))
+                if "name" in data:
+                    return data
+            except json.JSONDecodeError:
+                pass
+        
+        return None
     
     def shutdown(self):
         """关闭语音助手"""
@@ -456,11 +589,11 @@ def main():
     parser.add_argument('--audio', '-a', help='音频文件路径 (测试模式)')
     parser.add_argument('--cloud', action='store_true', help='强制使用云端API')
     parser.add_argument('--local', action='store_true', help='强制使用本地模型')
+    parser.add_argument('--duplex', '-d', action='store_true', help='全双工模式 (实时语音交互)')
     args = parser.parse_args()
 
     assistant = VoiceAssistant(args.config)
     
-    # 覆盖模式设置
     if args.cloud:
         assistant.config['cloud_api']['prefer_cloud'] = True
         logger.info("命令行参数: 强制使用云端API")
@@ -475,6 +608,8 @@ def main():
     try:
         if args.audio:
             assistant.process_once(args.audio)
+        elif args.duplex:
+            assistant.run_duplex()
         else:
             assistant.run_interactive()
     finally:

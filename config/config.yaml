@@ -133,10 +133,18 @@ cloud_api:
 # ===========================================
 audio:
   sample_rate: 16000
-  chunk_duration: 2.0
-  vad_aggressiveness: 2
-  input_device: null
-  output_device: null
+  channels: 1
+  chunk_size: 480              # 30ms at 16kHz
+  vad_aggressiveness: 2         # VAD敏感度 (0-3, 越高越严格)
+  input_device: null            # 输入设备ID (null=自动)
+  output_device: null           # 输出设备ID (null=自动)
+  max_silence_frames: 15        # 静音帧数阈值 (停止录音)
+  min_speech_frames: 3          # 语音帧数阈值 (开始录音)
+
+# ===========================================
+# 唤醒词配置 (全双工模式)
+# ===========================================
+wake_word: "小助手"
 
 # ===========================================
 # 本地LLM配置
@@ -152,38 +160,20 @@ llm:
   # Qwen3 系列支持工具调用功能
   function_calling:
     enabled: true
-    # 可用的工具定义
+    # 内置工具: set_volume (音量调节)
+    # 可扩展添加更多工具
     tools: []
 
 # ===========================================
-# 工具定义示例 (取消注释启用)
+# 内置工具 (自动加载)
 # ===========================================
-# llm:
-#   function_calling:
-#     enabled: true
-#     tools:
-#       - type: function
-#         function:
-#           name: get_weather
-#           description: 获取指定城市的天气信息
-#           parameters:
-#             type: object
-#             properties:
-#               city:
-#                 type: string
-#                 description: 城市名称
-#             required: [city]
-#       - type: function
-#         function:
-#           name: set_timer
-#           description: 设置定时器
-#           parameters:
-#             type: object
-#             properties:
-#               seconds:
-#                 type: integer
-#                 description: 定时秒数
-#             required: [seconds]
+# - set_volume: 音量调节 (调大/调小/静音/取消静音)
+#
+# 语音指令示例:
+#   "把音量调大一点" → 调高音量
+#   "静音" → 静音
+#   "音量调到50%" → 设置音量
+#   "取消静音" → 取消静音
 
 # ===========================================
 # 对话配置
@@ -191,8 +181,14 @@ llm:
 max_history: 10
 
 system_prompt: |
-  你是一个 helpful 的中文语音助手，运行在 Orange Pi 5 Plus 上。
+  你是一个helpful的中文语音助手，运行在 Orange Pi 5 Plus 上。
   请用简洁友好的中文回答问题。
+  
+  你可以使用工具来帮助用户:
+  - 调节音量: 使用 set_volume 工具
+  - 当用户说"把音量调大"、"静音"、"音量调到XX"时，调用相应工具
+  
+  回复时要简洁，适合语音播报。
 
 # ===========================================
 # TTS配置
