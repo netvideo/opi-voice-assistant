@@ -140,6 +140,15 @@ audio:
   output_device: null           # 输出设备ID (null=自动)
   max_silence_frames: 15        # 静音帧数阈值 (停止录音)
   min_speech_frames: 3          # 语音帧数阈值 (开始录音)
+  
+  # 自动增益控制 (AGC)
+  agc:
+    enabled: true               # 是否启用AGC
+    target_level: 0.5           # 目标电平 (0.0-1.0)
+    max_gain: 4.0               # 最大增益倍数
+    min_gain: 0.1               # 最小增益倍数
+    attack_time: 0.02           # 增益上升时间 (秒)
+    release_time: 0.5           # 增益下降时间 (秒)
 
 # ===========================================
 # 唤醒词配置 (全双工模式)

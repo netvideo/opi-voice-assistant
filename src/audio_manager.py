@@ -29,6 +29,12 @@ try:
 except ImportError:
     HAS_WEBRTCVAD = False
 
+try:
+    from pyagc import agc
+    HAS_PYAGC = True
+except ImportError:
+    HAS_PYAGC = False
+
 
 class AudioConfig:
     """音频配置"""
@@ -77,6 +83,101 @@ class VADDetector:
             return True
 
 
+class AGCProcessor:
+    """自动增益控制"""
+    
+    def __init__(self, target_level: float = 0.5, max_gain: float = 4.0, 
+                 min_gain: float = 0.1, attack_time: float = 0.02,
+                 release_time: float = 0.5, sample_rate: int = 16000):
+        """
+        初始化AGC处理器
+        
+        Args:
+            target_level: 目标电平 (0.0-1.0)
+            max_gain: 最大增益倍数
+            min_gain: 最小增益倍数
+            attack_time: 增益上升时间 (秒)
+            release_time: 增益下降时间 (秒)
+            sample_rate: 采样率
+        """
+        self.target_level = target_level
+        self.max_gain = max_gain
+        self.min_gain = min_gain
+        self.sample_rate = sample_rate
+        
+        self.attack_coeff = 1.0 - np.exp(-1.0 / (attack_time * sample_rate))
+        self.release_coeff = 1.0 - np.exp(-1.0 / (release_time * sample_rate))
+        
+        self.current_gain = 1.0
+        self.enabled = True
+        
+        self._use_pyagc = False
+        if HAS_PYAGC:
+            try:
+                self._pyagc = agc(sample_rate=sample_rate)
+                self._use_pyagc = True
+                logger.info("AGC已启用 (pyagc)")
+            except Exception as e:
+                logger.warning(f"pyagc初始化失败: {e}，使用内置AGC")
+                logger.info("AGC已启用 (内置软件AGC)")
+        else:
+            logger.info("AGC已启用 (内置软件AGC)")
+    
+    def process(self, audio_data: np.ndarray) -> np.ndarray:
+        """
+        处理音频数据，应用AGC
+        
+        Args:
+            audio_data: 输入音频 (float32)
+            
+        Returns:
+            处理后的音频
+        """
+        if not self.enabled or len(audio_data) == 0:
+            return audio_data
+        
+        if self._use_pyagc:
+            try:
+                return self._pyagc.process(audio_data)
+            except Exception as e:
+                logger.debug(f"pyagc处理失败: {e}")
+        
+        return self._software_agc(audio_data)
+    
+    def _software_agc(self, audio_data: np.ndarray) -> np.ndarray:
+        """软件AGC实现"""
+        rms = np.sqrt(np.mean(audio_data ** 2))
+        
+        if rms > 1e-7:
+            target_gain = self.target_level / rms
+            target_gain = np.clip(target_gain, self.min_gain, self.max_gain)
+            
+            if target_gain > self.current_gain:
+                coeff = self.attack_coeff
+            else:
+                coeff = self.release_coeff
+            
+            self.current_gain += coeff * (target_gain - self.current_gain)
+        
+        processed = audio_data * self.current_gain
+        processed = np.clip(processed, -1.0, 1.0)
+        
+        return processed.astype(np.float32)
+    
+    def reset(self):
+        """重置AGC状态"""
+        self.current_gain = 1.0
+        if self._use_pyagc:
+            try:
+                self._pyagc.reset()
+            except:
+                pass
+    
+    def get_gain(self) -> float:
+        """获取当前增益"""
+        return self.current_gain
+
+
 class AudioManager:
     """全双工音频管理器"""
     
@@ -93,6 +194,17 @@ class AudioManager:
             aggressiveness=self.config.get('vad_aggressiveness', AudioConfig.VAD_AGGRESSIVENESS),
             sample_rate=self.sample_rate
         )
+        
+        agc_config = self.config.get('agc', {})
+        self.agc = AGCProcessor(
+            target_level=agc_config.get('target_level', 0.5),
+            max_gain=agc_config.get('max_gain', 4.0),
+            min_gain=agc_config.get('min_gain', 0.1),
+            attack_time=agc_config.get('attack_time', 0.02),
+            release_time=agc_config.get('release_time', 0.5),
+            sample_rate=self.sample_rate
+        )
+        self.agc_enabled = agc_config.get('enabled', True)
         
         self.is_running = False
         self.is_speaking = False
@@ -210,6 +322,9 @@ class AudioManager:
         if not self.is_listening:
             return False
         
+        if self.agc_enabled:
+            audio_data = self.agc.process(audio_data)
+        
         is_speech = self.vad.is_speech(audio_data)
         
         if is_speech:
@@ -315,6 +430,23 @@ class AudioManager:
     def set_interrupt_callback(self, callback: Callable[[], None]):
         """设置打断回调"""
         self._interrupt_callback = callback
+    
+    def enable_agc(self, enabled: bool = True):
+        """启用或禁用AGC"""
+        self.agc_enabled = enabled
+        logger.info(f"AGC {'已启用' if enabled else '已禁用'}")
+    
+    def reset_agc(self):
+        """重置AGC状态"""
+        if self.agc:
+            self.agc.reset()
+            logger.info("AGC状态已重置")
+    
+    def get_agc_gain(self) -> float:
+        """获取当前AGC增益"""
+        if self.agc:
+            return self.agc.get_gain()
+        return 1.0
     
     def get_audio_chunk(self, timeout: float = 0.1) -> Optional[tuple]:
         """获取音频块"""

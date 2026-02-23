@@ -275,6 +275,28 @@ audio:
 - 安静环境: 设置为 1 或 2
 - 经常漏检: 设置为 0
 
+### Q: 自动增益控制 (AGC) 如何配置？
+
+AGC 自动调整麦克风输入音量，确保语音识别效果稳定：
+
+```yaml
+audio:
+  agc:
+    enabled: true           # 启用AGC
+    target_level: 0.5       # 目标音量电平 (0.0-1.0)
+    max_gain: 4.0           # 最大增益倍数
+    min_gain: 0.1           # 最小增益倍数
+    attack_time: 0.02       # 增益上升时间
+    release_time: 0.5       # 增益下降时间
+```
+
+**AGC效果**:
+- 声音太小 → 自动放大
+- 声音太大 → 自动降低
+- 防止爆音和静音
+
+**依赖**: `pip install pyagc` (可选，不安装则使用内置软件AGC)
+
 ## 手动安装步骤
 
 详见 [docs/deployment.md](docs/deployment.md)
